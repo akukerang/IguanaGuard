@@ -1,0 +1,17 @@
+description: Ultralytics YOLO11n model trained on E:/IguanaGuard/iguana2/data.yaml
+author: Ultralytics
+date: '2025-02-05T15:24:45.509665'
+version: 8.3.71
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: iguana
+args:
+  batch: 1
+  half: false

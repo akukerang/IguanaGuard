@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Feed with Coordinates</title>
+    <style>
+        #video-container {
+            position: relative;
+            display: inline-block;
+        }
+        #coordinates {
+            position: absolute;
+            color: white;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hover Over Webcam Feed to See Coordinates</h1>
+    <div id="video-container">
+        <img id="webcam-feed" src="{{ url_for('video') }}" width="640" height="480">
+        <div id="coordinates"></div>
+    </div>
+
+    <script>
+        const videoContainer = document.getElementById('video-container');
+        const coordinatesDiv = document.getElementById('coordinates');
+
+        videoContainer.addEventListener('mousemove', function(event) {
+            // Get the position of the mouse relative to the webcam feed
+            const rect = videoContainer.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Update the coordinates text
+            coordinatesDiv.textContent = `X: ${x}, Y: ${y}`;
+            coordinatesDiv.style.left = `${x + 10}px`;
+            coordinatesDiv.style.top = `${y + 10}px`;
+        });
+    </script>
+</body>
+</html>

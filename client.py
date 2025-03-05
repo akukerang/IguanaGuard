@@ -61,7 +61,7 @@ target = VDevice()
 CONFIDENCE_THRESHOLD = 0.65
 # Loading compiled HEFs to device:
 
-hef_path = 'models/yolov8n.hef'
+hef_path = 'models/unique_yolov8n.hef'
 hef = HEF(hef_path)
 
 # Configure network groups
@@ -89,7 +89,7 @@ servo_lock = threading.Lock()  # Lock to ensure only one servo update happens at
 GPIO.setmode(GPIO.BCM)
 
 # Pin NUmbers
-X_axis_servo = 23
+X_axis_servo = 14
 Y_axis_servo = 15
 # SoundPin = 21
 GPIO.setup(X_axis_servo, GPIO.OUT)
@@ -125,8 +125,8 @@ def coords_to_angles(x, y):
 
     # Offset Angle
     # x_angle = int(125+x_angle)  # with ultrasound
-    x_angle = int(110+x_angle)
-    y_angle = int(97+y_angle)  
+    x_angle = int(95+x_angle)
+    y_angle = int(105+y_angle)  
 
     x_angle = max(0, min(180, x_angle))
     y_angle = max(0, min(180, y_angle))

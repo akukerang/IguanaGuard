@@ -8,7 +8,6 @@ import RPi.GPIO as GPIO
 import time
 import threading
 
-
 # ===CAMERA SECTION===
 FRAME_RATE = 10
 
@@ -23,6 +22,8 @@ ret, frame = camera.read()
 if not ret:
     raise RuntimeError("Failed to read from camera")
 height, width = frame.shape[:2]
+
+print(height, width)
 
 # Camera Matrix
 newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (width, height), 1, (width, height))
@@ -59,8 +60,6 @@ def draw_detection(image, bbox, confidence, color, scale_x, scale_y):
 #=== Hailo Setup ===
 target = VDevice()
 CONFIDENCE_THRESHOLD = 0.65
-# Loading compiled HEFs to device:
-
 hef_path = 'models/unique_yolov8n.hef'
 hef = HEF(hef_path)
 
@@ -83,7 +82,8 @@ image_height, image_width, channels = input_vstream_info.shape
 # Initial servo angles
 x_angle = 90
 y_angle = 90
-servo_lock = threading.Lock()  # Lock to ensure only one servo update happens at a time
+# servo_lock = threading.Lock()  
+servo_lock = threading.Semaphore(1)
 
 # ===GPIO SECTION===
 GPIO.setmode(GPIO.BCM)
@@ -91,9 +91,12 @@ GPIO.setmode(GPIO.BCM)
 # Pin NUmbers
 X_axis_servo = 14
 Y_axis_servo = 15
-# SoundPin = 21
+LASER_PIN = 18
+
+# SoundPin = 23
 GPIO.setup(X_axis_servo, GPIO.OUT)
 GPIO.setup(Y_axis_servo, GPIO.OUT)
+GPIO.setup(LASER_PIN, GPIO.OUT)
 # GPIO.setup(SoundPin, GPIO.OUT)
 
 # Set up PWM for servos
@@ -102,15 +105,10 @@ Y_servo = GPIO.PWM(Y_axis_servo, 50)  # 50 Hz
 
 X_servo.start(0)
 Y_servo.start(0)
+GPIO.output(LASER_PIN, GPIO.HIGH)  # Laser ON
+
 
 # Servo Functions
-
-def set_servo_angle(servo, angle):
-    duty_cycle = (angle / 18.0) + 2.5
-    servo.ChangeDutyCycle(duty_cycle)
-    time.sleep(0.3)  
-    servo.ChangeDutyCycle(0)
-
 def coords_to_angles(x, y): 
     # Normalize Coordinates
     norm_x = (x / 609) * 2 - 1
@@ -132,11 +130,18 @@ def coords_to_angles(x, y):
     y_angle = max(0, min(180, y_angle))
     return x_angle, y_angle
 
+def set_servo_angle(servo, angle):
+    duty_cycle = (angle / 18.0) + 2.5
+    servo.ChangeDutyCycle(duty_cycle)
+    time.sleep(0.3)  
+    servo.ChangeDutyCycle(0)
+
 def move_servos(x, y):
     with servo_lock:
         angle_x, angle_y = coords_to_angles(x, y)
         set_servo_angle(X_servo, angle_x)
         set_servo_angle(Y_servo, angle_y)
+
 
 
 previous_x, previous_y = None, None
@@ -179,3 +184,4 @@ while camera.isOpened():
 
 
 camera.release()
+GPIO.cleanup()

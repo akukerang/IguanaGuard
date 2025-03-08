@@ -19,14 +19,14 @@
             <h2>Feed</h2>
             <img src="{{ url_for('video_feed') }}" alt="Video Feed">
         </div>
-        <div class="slider-container">
+        <!-- <div class="slider-container">
             <label for="confidence">Confidence Threshold: <span id="conf-value">{{ confidence }}</span></label>
             <input type="range" id="confidence" min="0.1" max="1.0" step="0.05" value="{{ confidence }}" oninput="updateConfidence(this.value)">
-        </div>
+        </div> -->
     </div>
 
 
-    <script>
+    <!-- <script>
         function updateConfidence(value) {
             document.getElementById('conf-value').innerText = value;
             fetch('/set_confidence', {
@@ -35,6 +35,6 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
             });
         }
-    </script>
+    </script> -->
 </body>
 </html>

@@ -10,6 +10,7 @@ import os
 import psutil
 import modules.camera as cam
 from modules.escalation import EscalationManager
+from modules.servos import ServoController
 
 #=== Hailo Setup ===
 target = VDevice()
@@ -31,60 +32,6 @@ output_vstreams_params = OutputVStreamParams.make(network_group, format_type=For
 input_vstream_info = hef.get_input_vstream_infos()[0]
 output_vstream_info = hef.get_output_vstream_infos()[0]
 image_height, image_width, channels = input_vstream_info.shape
-
-# === GPIO Section ===
-# Initial servo angles
-x_angle = 90
-y_angle = 90
-
-GPIO.setmode(GPIO.BCM)
-
-# Pin Numbers
-X_AXIS_SERVO = 14
-Y_AXIS_SERVO = 15
-
-GPIO.setup(X_AXIS_SERVO, GPIO.OUT)
-GPIO.setup(Y_AXIS_SERVO, GPIO.OUT)
-
-# Set up PWM for servos
-X_servo = GPIO.PWM(X_AXIS_SERVO, 50)  # 50 Hz
-Y_servo = GPIO.PWM(Y_AXIS_SERVO, 50)  # 50 Hz
-
-X_servo.start(0)
-Y_servo.start(0)
-
-def coords_to_angles(x, y): 
-    # Normalize Coordinates
-    norm_x = (x / 609) * 2 - 1
-    norm_y = (y / 427) * 2 - 1
-
-    horizontal_fov = 54.42
-    vertical_fov = 42.12
-
-    # Convert to angle
-    x_angle = -norm_x * (horizontal_fov / 2)  
-    y_angle = -norm_y * (vertical_fov / 2)  
-
-    # Offset Angle
-    # x_angle = int(125+x_angle)  # with ultrasound
-    x_angle = int(95+x_angle)
-    y_angle = int(105+y_angle)  
-
-    x_angle = max(0, min(180, x_angle))
-    y_angle = max(0, min(180, y_angle))
-    return x_angle, y_angle
-
-def set_servo_angle(servo, angle):
-    duty_cycle = (angle / 18.0) + 2.5
-    servo.ChangeDutyCycle(duty_cycle)
-    time.sleep(0.3)  
-    servo.ChangeDutyCycle(0)
-
-def move_servos(x, y):
-    # with servo_lock:
-    angle_x, angle_y = coords_to_angles(x, y)
-    set_servo_angle(X_servo, angle_x)
-    set_servo_angle(Y_servo, angle_y)
 
 # ===Flask Section===
 app = Flask(__name__)
@@ -113,6 +60,7 @@ def generate_frames():
     detection_count = 0 # Frame counters for debounce 
     no_detection_count = 0
     escalation_manager = EscalationManager()
+    servo_controller = ServoController()
     escalation_manager.start()
     movement_detected = False  # Detection State
     while camera.isOpened():
@@ -147,7 +95,8 @@ def generate_frames():
             no_detection_count = 0
 
             if previous_x is None or abs(center_x - previous_x) > 25 or abs(center_y - previous_y) > 25:
-                move_servos(center_x, center_y)
+                # servo.move_servos(center_x, center_y)
+                servo_controller.move_servos(center_x, center_y)
                 previous_x, previous_y = center_x, center_y
 
         else:
@@ -169,6 +118,7 @@ def generate_frames():
 
     camera.release()
     escalation_manager.stop()
+    servo_controller.cleanup()
 
 @app.route('/')
 def index():

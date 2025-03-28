@@ -65,7 +65,6 @@ class EscalationManager:
         while self.running:
             with self.time_lock:
                 elapsed = self.elapsed_time
-            print(elapsed)
             if elapsed >= self.SPRAY_TIME:
                 if self.current_state != State.SPRAY:
                     self.current_state = State.SPRAY

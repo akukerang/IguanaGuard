@@ -3,52 +3,13 @@ from multiprocessing import Process
 from hailo_platform import (HEF, VDevice, HailoStreamInterface, InferVStreams, ConfigureParams,
     InputVStreamParams, OutputVStreamParams, InputVStreams, OutputVStreams, FormatType) 
 import numpy as np
-import pickle
 import RPi.GPIO as GPIO
 import time
 from flask import Flask, Response, render_template, request
 import os
 import psutil
-
-
-# ===CAMERA SECTION===
-# Calibration Parameters
-cameraMatrix, dist = pickle.load(open("resources/calibration.pkl", "rb"))
-height = 480
-width = 640
-
-# Camera Matrix
-newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (width, height), 1, (width, height))
-x, y, w, h = roi 
-
-mapx, mapy = cv2.initUndistortRectifyMap(cameraMatrix, dist, None, newCameraMatrix, (width, height), 5)
-
-# Camera Functions
-def undistort_frame(frame): # Undistorts
-    return cv2.remap(frame, mapx, mapy, cv2.INTER_LINEAR)
-
-def preprocess(frame, target_size = (640,640)): # Preprocessing for YOLO model
-    frame = cv2.resize(frame, target_size)
-    frame = frame.astype(np.float32)
-    frame = np.expand_dims(frame, axis=0)
-    return frame
-
-def draw_detection(image, bbox, confidence, color, scale_x, scale_y):
-    ymin, xmin, ymax, xmax = bbox
-    xmin, xmax = int(xmin * scale_x), int(xmax * scale_x)
-    ymin, ymax = int(ymin * scale_y), int(ymax * scale_y)
-    center_x = (xmin + xmax) / 2
-    center_y = (ymin + ymax) / 2
-    cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, 2)  # Draw bounding box
-
-    label = f"Iguana: {confidence:.2f}"    
-    # Background for text
-    (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
-    cv2.rectangle(image, (xmin, ymin - text_height - 5), (xmin + text_width, ymin), color, -1)
-
-    # Confidence text
-    cv2.putText(image, label, (xmin, ymin - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-    return center_x, center_y
+import modules.camera as cam
+from modules.escalation import EscalationManager
 
 #=== Hailo Setup ===
 target = VDevice()
@@ -81,15 +42,9 @@ GPIO.setmode(GPIO.BCM)
 # Pin Numbers
 X_AXIS_SERVO = 14
 Y_AXIS_SERVO = 15
-LASER_PIN = 18
-# SOUND_PIN = 23
-# RELAY_PIN = 4
 
 GPIO.setup(X_AXIS_SERVO, GPIO.OUT)
 GPIO.setup(Y_AXIS_SERVO, GPIO.OUT)
-GPIO.setup(LASER_PIN, GPIO.OUT)
-# GPIO.setup(SOUND_PIN, GPIO.OUT)
-# GPIO.setup(RELAY_PIN, GPIO.OUT)
 
 # Set up PWM for servos
 X_servo = GPIO.PWM(X_AXIS_SERVO, 50)  # 50 Hz
@@ -97,13 +52,7 @@ Y_servo = GPIO.PWM(Y_AXIS_SERVO, 50)  # 50 Hz
 
 X_servo.start(0)
 Y_servo.start(0)
-GPIO.output(LASER_PIN, GPIO.LOW)  # Laser init off 
-# GPIO.output(SOUND_PIN, GPIO.LOW)  # Sound init off 
-# GPIO.output(RELAY_PIN, GPIO.LOW)  # Liquid init off 
 
-
-
-# Servo Functions
 def coords_to_angles(x, y): 
     # Normalize Coordinates
     norm_x = (x / 609) * 2 - 1
@@ -132,6 +81,7 @@ def set_servo_angle(servo, angle):
     servo.ChangeDutyCycle(0)
 
 def move_servos(x, y):
+    # with servo_lock:
     angle_x, angle_y = coords_to_angles(x, y)
     set_servo_angle(X_servo, angle_x)
     set_servo_angle(Y_servo, angle_y)
@@ -154,7 +104,7 @@ def get_cpu_temperature(): # Gets CPU Temp
     except Exception as e:
         return None
 
-DEBOUNCE_FRAMES = 25 # around half a second
+DEBOUNCE_FRAMES = 26 # around half a second
 def generate_frames():
     camera = cv2.VideoCapture(0)
     previous_x, previous_y = None, None
@@ -162,16 +112,15 @@ def generate_frames():
     last_move_time = time.time()
     detection_count = 0 # Frame counters for debounce 
     no_detection_count = 0
+    escalation_manager = EscalationManager()
+    escalation_manager.start()
+    movement_detected = False  # Detection State
     while camera.isOpened():
         ret, frame = camera.read()
         if not ret:
             break
-        undistorted_frame = undistort_frame(frame) # Remove fisheye effect
-
-        if roi != (0, 0, 0, 0):  
-            undistorted_frame = undistorted_frame[y:y+h, x:x+w] # Crop
-        
-        preprocessed = preprocess(undistorted_frame)
+        undistorted_frame = cam.undistort_frame(frame) # Remove fisheye effect        
+        preprocessed = cam.preprocess(undistorted_frame)
 
         with InferVStreams(network_group, input_vstreams_params, output_vstreams_params) as infer_pipeline:
             with network_group.activate(network_group_params):
@@ -187,45 +136,39 @@ def generate_frames():
                     if highest_conf[4] > CONFIDENCE_THRESHOLD:
                         detected = True 
                         bbox = highest_conf[0:4] * dim
-                        center_x, center_y = draw_detection(undistorted_frame, bbox, highest_conf[4], (0,255,0), rw, rh) # Draws bounding boxes
+                        center_x, center_y = cam.draw_detection(undistorted_frame, bbox, highest_conf[4], (0,255,0), rw, rh) # Draws bounding boxes
 
-        # Debounce 
         if detected:
-            detection_count += 1
-            no_detection_count = 0  # Reset no-detection count
-        else:
-            no_detection_count += 1
-            detection_count = 0  # Reset detection count
-
-        # Turn deterrant on if enough detected frames
-        if detection_count >= DEBOUNCE_FRAMES:
+            if not movement_detected:  # Only trigger once per detection sequence
+                escalation_manager.detect_movement()
+                movement_detected = True  # Mark as triggered
             
-            if previous_x is None or abs(center_x - previous_x) > 25 or abs(center_y - previous_y) > 25: # Move if previous X and y, vary enough to current
+            detection_count = min(detection_count + 1, DEBOUNCE_FRAMES)
+            no_detection_count = 0
+
+            if previous_x is None or abs(center_x - previous_x) > 25 or abs(center_y - previous_y) > 25:
                 move_servos(center_x, center_y)
                 previous_x, previous_y = center_x, center_y
-            GPIO.output(LASER_PIN, GPIO.HIGH) 
-            detection_count = DEBOUNCE_FRAMES  
 
-            # TODO: Escalation Model Here
+        else:
+            no_detection_count += 1
+            detection_count = max(detection_count - 1, 0)
 
-
-
-
-
-        # Turn Deterrants off if enough non-detected frames
+        # Reset deterrents if no detection for long enough
         if no_detection_count >= DEBOUNCE_FRAMES:
-            GPIO.output(LASER_PIN, GPIO.LOW)
-            # GPIO.output(SOUND_PIN, GPIO.LOW)  
-            # GPIO.output(RELAY_PIN, GPIO.LOW)  
-            no_detection_count = DEBOUNCE_FRAMES  
+            if movement_detected:  # Only reset if previously triggered
+                escalation_manager.reset()
+                movement_detected = False  # Reset flag
+            no_detection_count = DEBOUNCE_FRAMES  # Cap counter
 
         ret, buffer = cv2.imencode('.jpg', undistorted_frame)
         frame = buffer.tobytes()
 
         yield (b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-    camera.release()
 
+    camera.release()
+    escalation_manager.stop()
 
 @app.route('/')
 def index():

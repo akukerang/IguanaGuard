@@ -103,3 +103,8 @@ class EscalationManager:
     def get_status(self):
         """Returns the current status of the escalation system."""
         return self.current_state.name
+
+    def get_elapsed_time(self):
+        """Returns the elapsed time since the last detection."""
+        with self.time_lock:
+            return self.elapsed_time

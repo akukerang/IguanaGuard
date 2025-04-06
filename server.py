@@ -26,9 +26,14 @@ def get_cpu_temperature(): # Gets CPU Temp
         return None
 
 DEBOUNCE_FRAMES = 80 # around half a second
-detected_time = 0
-state = ""
-def generate_frames():
+state = "idle"
+detected_time = "0"
+temperature = get_cpu_temperature()
+cpu_usage = get_cpu_usage()
+
+
+def generate_frames():    
+    global state, detected_time, temperature, cpu_usage
     camera = cv2.VideoCapture(0)
     previous_x, previous_y = None, None
     last_move_time = time.time()
@@ -45,7 +50,13 @@ def generate_frames():
             break
         model.run(frame)
 
+        state = escalation_manager.get_status()
+        detected_time = escalation_manager.get_elapsed_time()
+        temperature = get_cpu_temperature()
+        cpu_usage = get_cpu_usage()
+
         if model.detected:
+
 
             if not movement_detected:  # Only trigger once per detection sequence
                 escalation_manager.detect_movement()
@@ -66,7 +77,7 @@ def generate_frames():
         # Reset deterrents if no detection for long enough
         if no_detection_count >= DEBOUNCE_FRAMES:
             if movement_detected:  # Only reset if previously triggered
-                # escalation_manager.reset()
+                escalation_manager.reset()
                 movement_detected = False  # Reset flag
             no_detection_count = DEBOUNCE_FRAMES  # Cap counter
 
@@ -82,7 +93,18 @@ def generate_frames():
 
 @app.route('/')
 def index():
-    return render_template('index.html', temperature=get_cpu_temperature(), cpu_usage=get_cpu_usage(), state=state, detected_time = detected_time)
+    return render_template('index.html')
+
+@app.route('/status')
+def status():
+    return {
+        'state': state,
+        'detected_time': detected_time,
+        'temperature': temperature,
+        'cpu_usage': cpu_usage
+    }
+
+
 
 @app.route('/video_feed')
 def video_feed():

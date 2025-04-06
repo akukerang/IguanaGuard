@@ -25,7 +25,9 @@ def get_cpu_temperature(): # Gets CPU Temp
     except Exception as e:
         return None
 
-DEBOUNCE_FRAMES = 26 # around half a second
+DEBOUNCE_FRAMES = 80 # around half a second
+detected_time = 0
+state = ""
 def generate_frames():
     camera = cv2.VideoCapture(0)
     previous_x, previous_y = None, None
@@ -44,6 +46,7 @@ def generate_frames():
         model.run(frame)
 
         if model.detected:
+
             if not movement_detected:  # Only trigger once per detection sequence
                 escalation_manager.detect_movement()
                 movement_detected = True  # Mark as triggered
@@ -63,7 +66,7 @@ def generate_frames():
         # Reset deterrents if no detection for long enough
         if no_detection_count >= DEBOUNCE_FRAMES:
             if movement_detected:  # Only reset if previously triggered
-                escalation_manager.reset()
+                # escalation_manager.reset()
                 movement_detected = False  # Reset flag
             no_detection_count = DEBOUNCE_FRAMES  # Cap counter
 
@@ -79,7 +82,7 @@ def generate_frames():
 
 @app.route('/')
 def index():
-    return render_template('index.html', temperature=get_cpu_temperature(), cpu_usage=get_cpu_usage())
+    return render_template('index.html', temperature=get_cpu_temperature(), cpu_usage=get_cpu_usage(), state=state, detected_time = detected_time)
 
 @app.route('/video_feed')
 def video_feed():

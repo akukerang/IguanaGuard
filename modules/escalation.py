@@ -12,8 +12,10 @@ class State(Enum):
 
 class EscalationManager:
     LASER_TIME = 2
-    BUZZER_TIME = 30    
-    SPRAY_TIME = 60   
+    # BUZZER_TIME = 30  
+    BUZZER_TIME = 10
+    SPRAY_TIME = 15
+    # SPRAY_TIME = 60   
     RESET_TIME = 300
 
     def __init__(self):
@@ -46,6 +48,7 @@ class EscalationManager:
     def stop(self):
         """Stop all monitoring and reset system."""
         self.running = False
+        self.current_state = State.IDLE
         self.time_thread.join()
         self.monitor_thread.join()
         self.reset()
@@ -62,10 +65,13 @@ class EscalationManager:
 
     def _monitor_escalation(self):
         """Monitors movement and escalates deterrence over time."""
-        while self.running:
+        while self.running:            
             with self.time_lock:
                 elapsed = self.elapsed_time
-            if elapsed >= self.SPRAY_TIME:
+
+            if elapsed >= self.RESET_TIME: # reset 
+                self.reset()
+            elif elapsed >= self.SPRAY_TIME:
                 if self.current_state != State.SPRAY:
                     self.current_state = State.SPRAY
                     self.deterrence.activate_spray()
@@ -83,8 +89,7 @@ class EscalationManager:
                     self.deterrence.activate_laser()
                     print("Escalation: LASER ON")
 
-            elif elapsed >= self.RESET_TIME: # reset 
-                self.reset()
+           
 
             time.sleep(1)  # Check escalation every second
 
@@ -94,3 +99,7 @@ class EscalationManager:
         self.last_detection_time = None
         self.deterrence.deactivate_all()
         print("System reset: All deterrents OFF.")
+
+    def get_status(self):
+        """Returns the current status of the escalation system."""
+        return self.current_state.name

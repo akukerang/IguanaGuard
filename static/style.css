@@ -14,6 +14,12 @@ body {
     align-items: center;
 }
 
+.content {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+}
+
 h1 {
     color: rgb(118, 199, 132);
 }
@@ -22,7 +28,9 @@ h2 {
     color: #61ac61;
 }
 
-.info-box, .video-box, .timer-box {
+.info-box,
+.video-box,
+.timer-box {
     background: #2d2d2d;
     padding: 20px;
     margin: 20px 0;
@@ -43,10 +51,13 @@ h2 {
     background: #333333;
 }
 
-.info-box, .timer-box {
+.info-box,
+.timer-box {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
+    gap: 3px;
+
 }
 
 p {

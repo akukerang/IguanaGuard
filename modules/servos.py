@@ -40,9 +40,8 @@ class ServoController:
         y_angle = -norm_y * (vertical_fov / 2)  
 
         # Offset Angle
-        # x_angle = int(125+x_angle)  # with ultrasound
-        x_angle = int(95+x_angle)
-        y_angle = int(105+y_angle)  
+        x_angle = int(100+x_angle)
+        y_angle = int(80+y_angle)  
 
         x_angle = max(0, min(180, x_angle))
         y_angle = max(0, min(180, y_angle))

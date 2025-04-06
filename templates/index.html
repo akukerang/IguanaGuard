@@ -1,34 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IguanaGuard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div class="main">
         <h1>IguanaGuard Dashboard</h1>
-        <div class="info-box">
-            <h2>CPU Temperature</h2>
-            <p>{{ temperature }} °C</p>
-            <h2>CPU Usage</h2>
-            <p>{{ cpu_usage }} %</p>
+        <div class="content">
+            <div class="video-box">
+                <h2>Feed</h2>
+                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+            </div>
+            <div class="info-box">
+                <div class="info-entry">
+                    <h2>CPU Temperature</h2>
+                    <p>{{ temperature }} °C</p>
+                </div>
+                <div class="info-entry">
+                    <h2>CPU Usage</h2>
+                    <p>{{ cpu_usage }} %</p>
+                </div>
+                <div class="slider-container">
+                    <h2>Confidence</h2>
+                    <!-- <label for="confidence">Confidence Threshold: <span id="conf-value">0.5</span></label> -->
+                    <input type="range" id="confidence" min="0.1" max="1.0" step="0.05" value="0.5">
+                </div>
+            </div>
         </div>
-        <div class="video-box">
-            <h2>Feed</h2>
-            <img src="{{ url_for('video_feed') }}" alt="Video Feed">
-        </div>
-        <div class="timer-box">
-            <h2>Duration</h2>
-            <p>6 Seconds</p>
-            <h2>State</h2>
-            <p>Idle</p>
-        </div>
-        <!-- <div class="slider-container">
-            <label for="confidence">Confidence Threshold: <span id="conf-value">{{ confidence }}</span></label>
-            <input type="range" id="confidence" min="0.1" max="1.0" step="0.05" value="{{ confidence }}" oninput="updateConfidence(this.value)">
+        <!-- <div class="timer-box">
+            <h2>Duration</h2><br />
+            <p>{{ detected_time }}</p>
+            <h2>State</h2><br />
+            <p>{{ state }}</p>
         </div> -->
+
     </div>
 
 
@@ -43,4 +53,5 @@
         }
     </script> -->
 </body>
+
 </html>

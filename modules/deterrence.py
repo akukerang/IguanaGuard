@@ -1,4 +1,6 @@
 import RPi.GPIO as GPIO
+import threading
+import time
 
 class Deterrence:
     def __init__(self):
@@ -14,7 +16,7 @@ class Deterrence:
         GPIO.setup(self.RELAY_PIN, GPIO.OUT)
         GPIO.output(self.LASER_PIN, GPIO.LOW)  # Laser init off 
         GPIO.output(self.SOUND_PIN, GPIO.LOW)  # Sound init off 
-        GPIO.output(self.RELAY_PIN, GPIO.LOW)  # Liquid init off 
+        GPIO.output(self.RELAY_PIN, GPIO.HIGH)  # Liquid init off 
 
     def activate_laser(self):
         self.laser_active = True
@@ -33,12 +35,27 @@ class Deterrence:
         GPIO.output(self.SOUND_PIN, GPIO.LOW) 
 
     def activate_spray(self):
+        if self.spray_active:
+            return
         self.spray_active = True
-        GPIO.output(self.RELAY_PIN, GPIO.HIGH)
+        def loop(): # Turns pump on and off
+            while self.spray_active:
+                GPIO.output(self.RELAY_PIN, GPIO.LOW)
+                time.sleep(3)
+                GPIO.output(self.RELAY_PIN, GPIO.HIGH)
+                time.sleep(10)
+
+            GPIO.output(self.RELAY_PIN, GPIO.HIGH)  
+
+
+        threading.Thread(target=loop, daemon=True).start()
+
+
+        self.spray_active = True
 
     def deactivate_spray(self):
         self.spray_active = False
-        GPIO.output(self.RELAY_PIN, GPIO.LOW)
+        GPIO.output(self.RELAY_PIN, GPIO.HIGH)
 
     def deactivate_all(self):
         self.deactivate_laser()

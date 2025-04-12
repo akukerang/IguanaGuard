@@ -4,11 +4,11 @@ from hailo_platform import (HEF, VDevice, HailoStreamInterface, InferVStreams, C
 import numpy as np
 
 class Detection_Model:
-    def __init__(self, confidence=0.5):
+    def __init__(self, confidence=0.65):
         #=== Hailo Setup ===
         self.target = VDevice()
         self.CONFIDENCE_THRESHOLD = confidence
-        self.hef_path = 'models/unique_yolov8n.hef'
+        self.hef_path = 'models/yolov11m.hef'
         self.hef = HEF(self.hef_path)
 
         # Configure network groups

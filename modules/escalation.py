@@ -68,7 +68,6 @@ class EscalationManager:
         while self.running:            
             with self.time_lock:
                 elapsed = self.elapsed_time
-
             if elapsed >= self.RESET_TIME: # reset 
                 self.reset()
             elif elapsed >= self.SPRAY_TIME:
@@ -88,6 +87,11 @@ class EscalationManager:
                     self.current_state = State.LASER
                     self.deterrence.activate_laser()
                     print("Escalation: LASER ON")
+            else:
+                if self.current_state != State.IDLE:
+                    self.current_state = State.IDLE
+                    self.deterrence.deactivate_all()
+                    print("Escalation: All deterrents OFF")
 
            
 

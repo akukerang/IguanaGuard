@@ -8,7 +8,7 @@ class Detection_Model:
         #=== Hailo Setup ===
         self.target = VDevice()
         self.CONFIDENCE_THRESHOLD = confidence
-        self.hef_path = 'models/yolov11m.hef'
+        self.hef_path = 'models/yolov11n.hef'
         self.hef = HEF(self.hef_path)
 
         # Configure network groups
@@ -31,6 +31,9 @@ class Detection_Model:
         self.center_y = 0
         self.detected = False
 
+
+    def update_confidence(self, confidence):
+        self.CONFIDENCE_THRESHOLD = confidence
     
     def run(self, frame):
         self.undistorted_frame = cam.undistort_frame(frame) # Remove fisheye effect        

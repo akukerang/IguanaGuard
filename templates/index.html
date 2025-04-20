@@ -35,8 +35,9 @@
                 </div>
                 <div class="slider-container">
                     <h2>Confidence</h2>
-                    <!-- <label for="confidence">Confidence Threshold: <span id="conf-value">0.5</span></label> -->
-                    <input type="range" id="confidence" min="0.1" max="1.0" step="0.05" value="0.5">
+                    <label for="confidence">Confidence Threshold: <span id="conf-value">0.5</span></label>
+                    <input type="range" id="confidence" min="0.1" max="1.0" step="0.05" value="0.5"
+                        onchange=updateConfidence(this.value)>
                 </div>
             </div>
         </div>
@@ -60,7 +61,7 @@
         // Update every second
         setInterval(updateStatus, 1000);
     </script>
-    <!-- <script>
+    <script>
         function updateConfidence(value) {
             document.getElementById('conf-value').innerText = value;
             fetch('/set_confidence', {
@@ -69,7 +70,7 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
             });
         }
-    </script> -->
+    </script>
 </body>
 
 </html>

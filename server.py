@@ -31,9 +31,11 @@ detected_time = "0"
 temperature = get_cpu_temperature()
 cpu_usage = get_cpu_usage()
 
+CONFIDENCE_THRESHOLD = 0.5
+model  = Detection_Model(confidence=CONFIDENCE_THRESHOLD)
 
 def generate_frames():    
-    global state, detected_time, temperature, cpu_usage
+    global state, detected_time, temperature, cpu_usage, model
     camera = cv2.VideoCapture(0)
     previous_x, previous_y = None, None
     last_move_time = time.time()
@@ -41,7 +43,6 @@ def generate_frames():
     no_detection_count = 0
     escalation_manager = EscalationManager()
     servo_controller = ServoController()
-    model  = Detection_Model()
     escalation_manager.start()
     movement_detected = False  # Detection State
     while camera.isOpened():
@@ -56,8 +57,6 @@ def generate_frames():
         cpu_usage = get_cpu_usage()
 
         if model.detected:
-
-
             if not movement_detected:  # Only trigger once per detection sequence
                 escalation_manager.detect_movement()
                 movement_detected = True  # Mark as triggered
@@ -104,7 +103,16 @@ def status():
         'cpu_usage': cpu_usage
     }
 
-
+@app.route('/set_confidence', methods=['POST'])
+def set_confidence():
+    global CONFIDENCE_THRESHOLD, model
+    try:
+        new_confidence = float(request.form['confidence'])
+        CONFIDENCE_THRESHOLD = new_confidence
+        model.update_confidence(CONFIDENCE_THRESHOLD)
+        return {'status': 'success', 'confidence': CONFIDENCE_THRESHOLD}
+    except ValueError:
+        return {'status': 'error', 'message': 'Invalid confidence value'}, 400
 
 @app.route('/video_feed')
 def video_feed():

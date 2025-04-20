@@ -11,14 +11,7 @@ class State(Enum):
     MAX_ESCALATION = auto()
 
 class EscalationManager:
-    LASER_TIME = 2
-    # BUZZER_TIME = 30  
-    BUZZER_TIME = 10
-    SPRAY_TIME = 15
-    # SPRAY_TIME = 60   
-    RESET_TIME = 300
-
-    def __init__(self):
+    def __init__(self, laser_time=2, buzzer_time=60, spray_time=300, reset_time=600):
         self.deterrence = Deterrence()
         self.current_state = State.IDLE
         self.last_detection_time = None
@@ -27,6 +20,27 @@ class EscalationManager:
         self.time_lock = threading.Lock()
         self.elapsed_time = 0
         self.monitor_thread = threading.Thread(target=self._monitor_escalation, daemon=True)
+        self.laser_time = laser_time
+        self.buzzer_time = buzzer_time
+        self.spray_time = spray_time
+        self.reset_time = reset_time
+
+    def update_laser_time(self, laser_time):
+        """Update the laser time threshold."""
+        self.laser_time = laser_time
+
+    def update_buzzer_time(self, buzzer_time):  
+        """Update the buzzer time threshold."""
+        self.buzzer_time = buzzer_time
+
+    def update_spray_time(self, spray_time):
+        """Update the spray time threshold."""
+        self.spray_time = spray_time
+
+    def update_reset_time(self, reset_time):
+        """Update the reset time threshold."""
+        self.reset_time = reset_time
+
 
     def update_time(self):
         """Background thread to track elapsed time since last detection."""
@@ -67,22 +81,22 @@ class EscalationManager:
         """Monitors movement and escalates deterrence over time."""
         while self.running:            
             with self.time_lock:
-                elapsed = self.elapsed_time
-            if elapsed >= self.RESET_TIME: # reset 
+                elapsed = self.elapsed_time            
+            if elapsed >= self.reset_time: # reset 
                 self.reset()
-            elif elapsed >= self.SPRAY_TIME:
+            elif elapsed >= self.spray_time:
                 if self.current_state != State.SPRAY:
                     self.current_state = State.SPRAY
                     self.deterrence.activate_spray()
                     print("Escalation: SPRAY ON")
 
-            elif elapsed >= self.BUZZER_TIME:
+            elif elapsed >= self.buzzer_time:
                 if self.current_state != State.BUZZER:
                     self.current_state = State.BUZZER
                     self.deterrence.activate_buzzer()
                     print("Escalation: BUZZER ON")
 
-            elif elapsed >= self.LASER_TIME:
+            elif elapsed >= self.laser_time:
                 if self.current_state != State.LASER:
                     self.current_state = State.LASER
                     self.deterrence.activate_laser()

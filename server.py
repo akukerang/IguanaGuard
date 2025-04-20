@@ -33,15 +33,20 @@ cpu_usage = get_cpu_usage()
 
 CONFIDENCE_THRESHOLD = 0.5
 model  = Detection_Model(confidence=CONFIDENCE_THRESHOLD)
+escalation_manager = EscalationManager(
+    laser_time=2, 
+    buzzer_time=10, 
+    spray_time=15, 
+    reset_time=60
+)
 
 def generate_frames():    
-    global state, detected_time, temperature, cpu_usage, model
+    global state, detected_time, temperature, cpu_usage, model, escalation_manager
     camera = cv2.VideoCapture(0)
     previous_x, previous_y = None, None
     last_move_time = time.time()
     detection_count = 0 # Frame counters for debounce 
     no_detection_count = 0
-    escalation_manager = EscalationManager()
     servo_controller = ServoController()
     escalation_manager.start()
     movement_detected = False  # Detection State
@@ -87,12 +92,18 @@ def generate_frames():
             b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     camera.release()
-    escalation_manager.stop()
     servo_controller.cleanup()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    global escalation_manager
+    return render_template('index.html', 
+        laser_time=escalation_manager.laser_time, 
+        buzzer_time=escalation_manager.buzzer_time, 
+        spray_time=escalation_manager.spray_time, 
+        reset_time=escalation_manager.reset_time
+    )
+
 
 @app.route('/status')
 def status():
@@ -114,6 +125,27 @@ def set_confidence():
     except ValueError:
         return {'status': 'error', 'message': 'Invalid confidence value'}, 400
 
+@app.route('/set_time', methods=['POST'])
+def set_time():
+    global escalation_manager
+    try:
+        new_time = int(request.form['time'])
+        method_type = request.form['type']
+        if method_type == 'laser':
+            escalation_manager.update_laser_time(new_time)
+        elif method_type == 'buzzer':
+            escalation_manager.update_buzzer_time(new_time)
+        elif method_type ==  'spray':
+            escalation_manager.update_spray_time(new_time)
+        elif method_type ==  'reset':
+            escalation_manager.update_reset_time(new_time)
+        else:
+            return {'status': 'error', 'message': 'Invalid type'}, 400
+        return {'status': 'success', 'time': new_time}
+    except ValueError:
+        return {'status': 'error', 'message': 'Invalid time value'}, 400
+
+
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -123,3 +155,5 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5000, debug=False) 
     except Exception as e:
         print(f"Error occurred: {e}")
+    finally:
+        escalation_manager.stop()

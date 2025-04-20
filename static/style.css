@@ -30,13 +30,29 @@ h2 {
 
 .info-box,
 .video-box,
-.timer-box {
+.control-box {
     background: #2d2d2d;
     padding: 20px;
     margin: 20px 0;
     box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     transition: background 0.3s ease;
+}
+
+.control-box input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #61ac61;
+    background-color: white;
+    color: black;
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.control-box label {
+    color: #61ac61;
+    font-size: 1.2em;
+    margin-bottom: 5px;
 }
 
 .video-box {
@@ -69,4 +85,11 @@ img {
     width: 100%;
     border-radius: 4px;
     border: 2px solid rgb(118, 199, 132);
+}
+
+.timing-entry {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+
 }

@@ -33,44 +33,69 @@
                     <h2>Time Detected</h2>
                     <p id="detected_time">0s</p>
                 </div>
+
+            </div>
+            <div class="control-box">
                 <div class="slider-container">
                     <h2>Confidence</h2>
                     <label for="confidence">Confidence Threshold: <span id="conf-value">0.5</span></label>
                     <input type="range" id="confidence" min="0.1" max="1.0" step="0.05" value="0.5"
                         onchange=updateConfidence(this.value)>
                 </div>
+                <div class="timing-entry">
+                    <h2>Esclation State Timing</h2>
+                    <label for="laser_timing">Laser:</label>
+                    <input type="number" id="laser_timing" value={{ laser_time }} min="1"
+                        onchange="updateTiming(this.value, 'laser')">
+                    <label for="buzzer_timing">Buzzer:</label>
+                    <input type="number" id="buzzer_timing" value={{ buzzer_time }} min="1"
+                        onchange="updateTiming(this.value, 'buzzer')">
+                    <label for="spray_timing">Spray:</label>
+                    <input type="number" id="spray_timing" value={{ spray_time }} min="1"
+                        onchange="updateTiming(this.value, 'spray')">
+                    <label for="reset_timing">Reset:</label>
+                    <input type="number" id="reset_timing" value={{ reset_time }} min="1"
+                        onchange="updateTiming(this.value, 'reset')">
+                </div>
             </div>
         </div>
 
+        <script>
+            function updateConfidence(value) {
+                document.getElementById('conf-value').innerText = value;
+                fetch('/set_confidence', {
+                    method: 'POST',
+                    body: new URLSearchParams({ 'confidence': value }),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                });
+            }
 
-    </div>
+            function updateTiming(value, type) {
+                fetch('/set_time', {
+                    method: 'POST',
+                    body: new URLSearchParams({ 'time': value, 'type': type }),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                });
 
-    <script>
-        function updateStatus() {
-            fetch('/status')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('cpu_usage').innerText = data.cpu_usage.toFixed(2) + " %";
-                    document.getElementById('temperature').innerText = data.temperature.toFixed(2) + " °C";
-                    document.getElementById('state').innerText = data.state;
-                    document.getElementById('detected_time').innerText = data.detected_time.toFixed(2) + " seconds";
-                })
-                .catch(error => console.error('Error fetching status:', error));
-        }
+            }
 
-        // Update every second
-        setInterval(updateStatus, 1000);
-    </script>
-    <script>
-        function updateConfidence(value) {
-            document.getElementById('conf-value').innerText = value;
-            fetch('/set_confidence', {
-                method: 'POST',
-                body: new URLSearchParams({ 'confidence': value }),
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            });
-        }
-    </script>
+            function updateStatus() {
+                fetch('/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('cpu_usage').innerText = data.cpu_usage.toFixed(2) + " %";
+                        document.getElementById('temperature').innerText = data.temperature.toFixed(2) + " °C";
+                        document.getElementById('state').innerText = data.state;
+                        document.getElementById('detected_time').innerText = data.detected_time.toFixed(0) + " seconds";
+                    })
+                    .catch(error => console.error('Error fetching status:', error));
+            }
+
+            // Update every second
+            setInterval(updateStatus, 1000);
+        </script>
+
+
 </body>
 
 </html>

@@ -35,8 +35,7 @@ Our testing shows the system effectively deters iguanas while minimizing false p
 - **[Project Report](https://github.com/akukerang/IguanaGuard/blob/main/docs/IguanaGuard_Project_Report.pdf)**: Detailed technical specifications, testing methodology, and complete results
 - **[FAU Senior Design Showcase](https://www.fau.edu/engineering/senior-design/projects/spring2025/iguana-guard/)**: Official university project page
 - **[Demo Video](https://www.youtube.com/watch?v=v8A0wEpKqK8)**
-<iframe width="600" height="365" src="https://www.youtube.com/embed/v8A0wEpKqK8" 
-frameborder="0" allowfullscreen></iframe>
+
 
 ## 👨‍💻 Team
 Created as a senior project by a team of three engineering students passionate about applying technology to solve real problems for real people!
